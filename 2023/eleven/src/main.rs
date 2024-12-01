@@ -1,4 +1,5 @@
-use std::{collections::{HashSet, HashMap}, ops::Range};
+use std::{collections::{HashSet, HashMap, BinaryHeap}, ops::Range, cmp::Ordering};
+use itertools::Itertools;
 
 
 #[derive(Debug,Clone,Copy)]
@@ -7,19 +8,82 @@ enum UniverseNode {
     Galaxy(u16)
 }
 
+impl UniverseNode {
+    pub fn is_empty_space(&self) -> bool {
+        match self {
+            &Self::EmptySpace => true,
+            _ => false
+        }
+    }
+
+    pub fn is_galaxy(&self) -> bool {
+        match self {
+            &Self::Galaxy(_) => true,
+            _ => false
+        }
+    }
+}
+
+#[derive(Debug)]
+struct Vertex {
+    vertex: (usize,usize),
+    distance: u128,
+}
+
+impl Ord for Vertex{
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.distance.cmp(&self.distance)
+    }
+}
+
+impl PartialOrd for Vertex{
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Vertex{
+    fn eq(&self, other: &Self) -> bool {
+        self.distance.eq(&other.distance)
+    }
+}
+
+impl Eq for Vertex{}
+
 fn main() {
-    let mut galaxy_map = parse_galaxy(include_str!("galaxy-map.input"));
-    galaxy_map = expand_universe(galaxy_map);
+    let galaxy_map = parse_galaxy(include_str!("galaxy-map.input"));
     let universe = enumerate_universe(&galaxy_map);
-    let unique_galaxies = get_unique_pairs(get_galaxy_count(&universe));
-    let shortes_path_sum: usize = get_all_galaxies(&universe).into_iter()
-        .map(|x| get_distances_to_galaxies(x, &universe))
-        .flatten()
-        .filter(|(x, _)| unique_galaxies.contains(x))
-        .map(|(_,d)| d as usize)
-        .sum();
+    let galaxy_count = get_galaxy_count(&universe);
+    let unique_galaxies = (1..=galaxy_count)
+            .combinations(2)
+            .map(|x| (x[0], x[1]))
+            .collect_vec();
+    let  distances = shortes_distance_galaxies(&universe, &1000000);
+    let shortes_path_sum: usize = distances.into_iter()
+            .filter(|(x, _)| unique_galaxies.contains(x))
+            .map(|(_,d)| d as usize)
+            .sum();
     println!("shortes paths sum: {}", shortes_path_sum);
-    draw_universe(&universe);
+}
+
+fn shortes_distance_galaxies(universe: &Vec<Vec<UniverseNode>>, free_cost: &u128)
+    -> Vec<((usize,usize), u128)> {
+    let mut name_distances = vec![];
+    for position in get_all_galaxies(universe) {
+        let galaxy_name = galaxy_position_to_name(position, universe);
+        let distances_from_galaxy = get_distances_to_galaxies(
+            position,
+            universe,
+            free_cost
+        );
+        name_distances.extend(
+            distances_from_galaxy.into_iter()
+                .map(|(p,d)| 
+                 ((galaxy_name, galaxy_position_to_name(p, universe)), d))
+        );
+    }
+
+    name_distances
 }
 
 fn get_galaxy_count(universe: &Vec<Vec<UniverseNode>>) -> usize {
@@ -35,48 +99,72 @@ fn get_galaxy_count(universe: &Vec<Vec<UniverseNode>>) -> usize {
 }
 
 fn get_distances_to_galaxies(start: (usize,usize),
-                             universe: &Vec<Vec<UniverseNode>>) 
-        -> Vec<((usize,usize),u16)> {
-    let mut distances: HashMap<(usize,usize), u16> = HashMap::from_iter(
-        (0..universe.len()).map(|y| (0..universe[0].len()).map(move |x| (y,x)))
-            .flatten().map(|x| (x,u16::MAX))
-    );
-    *distances.get_mut(&start).unwrap() = 0;
-    let mut to_be_visited: HashSet<(usize,usize)> = HashSet::from_iter(
-        get_cartesian_product_range(0..universe.len(), 0..universe[0].len())
-    );
-
-    let mut current_node;
-    
-    while !to_be_visited.is_empty() {
-        current_node = *to_be_visited.iter()
-            .map(|x| (x, distances[x]))
-            .min_by_key(|(_,d)| *d)
-            .unwrap()
-            .0;
-
-        to_be_visited.remove(&current_node);
-        for neigbor in get_neighbors(current_node, &universe) {
-            if !to_be_visited.contains(&neigbor) {
-                continue;
-            }
-            let current_distance = distances[&neigbor];
-            let new_distance = distances[&current_node] + 1;
-            if current_distance > new_distance {
-                *distances.get_mut(&neigbor).unwrap() = new_distance;
-            }
-        }
-    }
-
-    draw_universe_with_distance(&distances, universe);
-    println!("-------------------------------------------");
-    println!("-------------------------------------------");
-    println!("-------------------------------------------");
+                             universe: &Vec<Vec<UniverseNode>>,
+                             free_cost: &u128) 
+        -> Vec<((usize,usize),u128)> {
+    let distances = dijkstra(&start, universe, free_cost);
     get_all_galaxies(universe)
         .into_iter()
         .filter(|&x| x != start)
         .map(|(y,x)| ((y,x), distances[&(y,x)]))
         .collect()
+}
+
+fn dijkstra(start: &(usize,usize), universe: &Vec<Vec<UniverseNode>>,
+            free_cost: &u128) 
+    -> HashMap<(usize,usize), u128> {
+    let mut distances = HashMap::new();
+    let mut visited = HashSet::new();
+    let mut to_visit = BinaryHeap::new();
+
+    distances.insert(*start, 0);
+    to_visit.push(Vertex {
+        vertex: *start,
+        distance: 0,
+    });
+
+    let free_rows: HashSet<usize> = HashSet::from_iter(
+        get_free_rows(universe).into_iter()
+    );
+    let free_columns: HashSet<usize> = HashSet::from_iter(
+        get_free_columns(universe).into_iter()
+    );
+
+    while let Some(Vertex { vertex, distance }) = to_visit.pop() {
+        if !visited.insert(vertex) {
+            continue;
+        }
+        for neighbor in get_neighbors(&vertex, universe) {
+            let new_distance = distance + get_distance(
+                &neighbor,
+                &free_columns,
+                &free_rows,
+                *free_cost
+            );
+            let is_shorter = distances
+                .get(&neighbor)
+                .map_or(true, |&current| new_distance < current);
+
+            if is_shorter {
+                distances.insert(neighbor, new_distance);
+                to_visit.push(Vertex {
+                    vertex: neighbor,
+                    distance: new_distance,
+                });
+            }
+        }
+    }
+
+    distances
+}
+
+fn get_distance(node: &(usize,usize), free_columns: &HashSet<usize>,
+                free_rows: &HashSet<usize>, free_cost: u128) ->  u128 {
+    if free_rows.contains(&node.0) || free_columns.contains(&node.1) {
+        free_cost
+    } else {
+        1
+    }
 }
 
 fn draw_universe_with_distance(distance: &HashMap<(usize,usize), u16>, 
@@ -115,9 +203,9 @@ fn get_all_galaxies(universe: &Vec<Vec<UniverseNode>>) -> Vec<(usize,usize)> {
     .collect()
 }
 
-fn get_neighbors(node: (usize,usize), universe: &Vec<Vec<UniverseNode>>) 
+fn get_neighbors(node: &(usize,usize), universe: &Vec<Vec<UniverseNode>>) 
     -> Vec<(usize, usize)> {
-    let neighbors = vec![
+    let neighbors = [
         (node.0 as i64, node.1 as i64 + 1),
         (node.0 as i64, node.1 as i64 - 1),
         (node.0 as i64 - 1, node.1 as i64),
@@ -132,15 +220,6 @@ fn get_neighbors(node: (usize,usize), universe: &Vec<Vec<UniverseNode>>)
         .collect()
 }
 
-fn expand_universe(mut galaxy_map: Vec<Vec<char>>) -> Vec<Vec<char>> {
-    for (added,column) in get_free_columns(&galaxy_map).iter().enumerate() {
-        galaxy_map = double_column(column + added, galaxy_map);
-    }
-    for (added,row) in get_free_rows(&galaxy_map).iter().enumerate() {
-        galaxy_map = double_row(row + added, galaxy_map);
-    }
-    galaxy_map
-}
 
 fn double_row(row: usize, mut galaxy_map: Vec<Vec<char>>) -> Vec<Vec<char>> {
     galaxy_map.insert(row, galaxy_map[row].clone());
@@ -162,36 +241,23 @@ fn parse_galaxy(raw: &str) -> Vec<Vec<char>> {
         .collect::<Vec<Vec<char>>>()
 }
 
-fn get_free_rows(galaxy_map: &Vec<Vec<char>>) -> Vec<usize> {
+fn get_free_rows(galaxy_map: &Vec<Vec<UniverseNode>>) -> Vec<usize> {
     galaxy_map.iter().enumerate()
-        .filter(|(_,x)| x.iter().all(|&x| x == '.'))
+        .filter(|(_,x)| x.iter().all(|&x| x.is_empty_space()))
         .map(|(index,_)| index)
         .collect()
 }
 
-fn get_free_columns(galaxy_map: &Vec<Vec<char>>) -> Vec<usize> {
+fn get_free_columns(galaxy_map: &Vec<Vec<UniverseNode>>) -> Vec<usize> {
     let mut free_columns = vec![];
     for column in 0..galaxy_map[0].len() {
-        if galaxy_map.iter().map(|x| x[column]).all(|x| x == '.') {
+        if galaxy_map.iter().map(|x| x[column]).all(|x| x.is_empty_space()) {
             free_columns.push(column);
         }
     }
     free_columns
 }
 
-fn get_unique_pairs(amount: usize) -> Vec<(usize,usize)> {
-    let cartesian_product = (1..=amount)
-        .map(|row| (1..=amount).map(move |column| (row,column)))
-        .flatten()
-        .collect::<Vec<(usize,usize)>>();
-    let mut unique_pairs = vec![];
-    for (x,y) in cartesian_product {
-        if !unique_pairs.contains(&(y,x)) && x != y {
-            unique_pairs.push((x,y))
-        }
-    }
-    unique_pairs
-}
 
 fn draw_galaxy(galaxy_map: &Vec<Vec<char>>) {
     for row in galaxy_map.iter() {
@@ -230,6 +296,15 @@ fn enumerate_universe(galaxy_map: &Vec<Vec<char>>) -> Vec<Vec<UniverseNode>> {
     enumerated_galaxy
 }
 
+fn galaxy_position_to_name(position: (usize,usize), 
+                           universe: &Vec<Vec<UniverseNode>>) -> usize {
+    match universe[position.0][position.1] {
+        UniverseNode::EmptySpace => panic!("Invalid parameter: Not a galaxy"),
+        UniverseNode::Galaxy(x) => x as usize,
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -263,38 +338,52 @@ mod tests {
     fn part1() {
         let galaxy = parse_galaxy(PART_ONE);
         let expanded_galaxy = parse_galaxy(PART_ONE_EXPANDED);
+
+
+        let universe = enumerate_universe(&galaxy);
         assert_eq!(
-            (get_free_rows(&galaxy), get_free_columns(&galaxy)),
+            (get_free_rows(&universe), get_free_columns(&universe)),
             (vec![3,7], vec![2,5,8])
         );
-
-        assert_eq!(
-            expand_universe(galaxy.clone()),
-            expanded_galaxy
-        );
-
-        let universe = enumerate_universe(&expand_universe(galaxy));
-        let distances = get_distances_to_galaxies((6,1), &universe);
-        assert_eq!(get_unique_pairs(get_galaxy_count(&universe)).len(), 36);
+        let distances = get_distances_to_galaxies((5,1), &universe, &2);
+        assert_eq!((1..=get_galaxy_count(&universe)).combinations(2)
+            .map(|x| (x[0], x[1])).count(), 36);
         println!("distances: {:?}", distances);
         assert_eq!(
             distances[
              distances.iter()
-                .position(|((y,x),_)| *y == 11 && *x == 5).unwrap()
+                .position(|((y,x),_)| *y == 9 && *x == 4).unwrap()
             ].1,
             9
             );
 
 
-        let unique_galaxies = get_unique_pairs(get_galaxy_count(&universe));
-        println!("hallo: {:?}", unique_galaxies);
-        let shortes_path_sum: usize = get_all_galaxies(&universe).into_iter()
-            .map(|x| get_distances_to_galaxies(x, &universe))
-            .flatten()
+        let unique_galaxies  = (1..=get_galaxy_count(&universe))
+            .combinations(2)
+            .map(|x| (x[0], x[1]))
+            .collect_vec();
+        println!("pairs: {:?}", unique_galaxies);
+        let shortes_path_sum: usize =  shortes_distance_galaxies(&universe,&2)
+            .into_iter()
             .filter(|(x, _)| unique_galaxies.contains(x))
-            .inspect(|(_,d)| println!("current distance: {}", d))
             .map(|(_,d)| d as usize)
             .sum();
         assert_eq!(shortes_path_sum, 374);
+
+        let shortes_path_sum: usize =  shortes_distance_galaxies(&universe,&10)
+            .into_iter()
+            .filter(|(x, _)| unique_galaxies.contains(x))
+            .map(|(_,d)| d as usize)
+            .sum();
+        assert_eq!(shortes_path_sum, 1030);
+
+        let shortes_path_sum: usize =  shortes_distance_galaxies(&universe,&100)
+            .into_iter()
+            .filter(|(x, _)| unique_galaxies.contains(x))
+            .map(|(_,d)| d as usize)
+            .sum();
+        assert_eq!(shortes_path_sum, 8410);
     }
 }
+
+
