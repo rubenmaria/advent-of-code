@@ -1,30 +1,23 @@
 def is_safe(r: list[int]) -> bool:
+    VALID_DIFF = [1, 2, 3]
     return (
-        (all(r[i] < r[i+1] for i in range(len(r) - 1))
-            or all(r[i] > r[i+1] for i in range(len(r) - 1)))
-        and all(abs(r[i] - r[i+1]) <= 3 for i in range(len(r) - 1))
+        all((r[i+1] - r[i]) in VALID_DIFF for i in range(len(r) - 1))
+        or 
+        all((r[i] - r[i+1]) in VALID_DIFF for i in range(len(r) - 1))
+    )
+
+
+def is_safe_joker(r: list[int]) -> bool:
+    return (
+        is_safe(r) 
+        or
+        any(is_safe([x for (j,x) in enumerate(r) if i != j]) for i in range(len(r)))
     )
 
 
 reports = list(map(
     lambda x: [int(el) for el in x.split() if el.isdigit()],
-    open("example-two.input", "r").read().splitlines()
+    open("two.input", "r").read().splitlines()
 ))
 print(len(list(filter(is_safe, reports))))
-
-
-def is_safe_joker(r: list[int]) -> bool:
-    inc_wrong = [i for i in range(len(r) - 1) if r[i] >= r[i+1]]
-    dec_wrong = [i for i in range(len(r) - 1) if r[i] <= r[i+1]]
-    if min(len(inc_wrong), len(dec_wrong)) == 0:
-        return all([
-            abs(r[i] - r[i+1]) <= 3 for i in range(len(r) - 1)
-        ])
-    else:
-        pass
-
-
-    #[abs(r[i] - r[i+1]) <= 3 for i in range(len(r) - 1)].count(False) <= 1
-
-
 print(len(list(filter(is_safe_joker, reports))))
