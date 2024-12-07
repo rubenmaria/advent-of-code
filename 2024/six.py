@@ -14,6 +14,16 @@ def get_position(direction: str, map: list[list[str]]) -> tuple[int, int]:
     assert False
 
 
+def print_visited(v: set[tuple[int, int]], map: list[list[str]]) -> None:
+    for row in range(len(map)):
+        for column in range(len(map[0])):
+            if (row, column) in v and map[row][column] != "#":
+                print("X", end="")
+            else:
+                print(map[row][column], end="")
+        print("\n")
+
+
 DIRECTIONS = [">", "<", "^", "v"]
 map = list(map(list, open("six.input").read().splitlines()))
 visited = set()
@@ -21,11 +31,12 @@ current_direction = get_direction(DIRECTIONS, map)
 current_position = get_position(current_direction, map)
 
 while True:
+    old_visited_length = len(visited)
     if current_direction == ">":
         right_of_guard = map[current_position[0]][current_position[1] + 1:]
         print("right of guard: ", right_of_guard)
         if "#" in right_of_guard:
-            index_object = right_of_guard.index("#") + current_position[1] + 1
+            index_object = current_position[1] + right_of_guard.index("#") + 1
             visited |= set(
                 [
                     (current_position[0], x)
@@ -43,10 +54,11 @@ while True:
             )
             break
     elif current_direction == "<":
-        left_of_guard = map[current_position[0]][: current_position[1] - 1]
+        left_of_guard = map[current_position[0]][:current_position[1]]
+        left_of_guard = left_of_guard[::-1]
         print("left of guard: ", left_of_guard)
         if "#" in left_of_guard:
-            index_object = left_of_guard.index("#")
+            index_object = len(left_of_guard) - 1 - left_of_guard.index("#")
             visited |= set(
                 [
                     (current_position[0], x)
@@ -64,10 +76,11 @@ while True:
             )
             break
     elif current_direction == "^":
-        up_of_guard = [x[current_position[1]] for x in map[: current_position[0]]]
+        up_of_guard = [x[current_position[1]] for x in map[:current_position[0]]]
+        up_of_guard = up_of_guard[::-1]
         print("up of guard: ", up_of_guard)
         if "#" in up_of_guard:
-            index_object = up_of_guard.index("#")
+            index_object = len(up_of_guard) - 1 - up_of_guard.index("#")
             visited |= set(
                 [
                     (y, current_position[1])
@@ -88,7 +101,7 @@ while True:
         down_of_guard = [x[current_position[1]] for x in map[current_position[0]+1:]]
         print("down of guard: ", down_of_guard)
         if "#" in down_of_guard:
-            index_object = down_of_guard.index("#") + current_position[0] + 1
+            index_object = current_position[0] + 1 + down_of_guard.index("#")
             visited |= set(
                 [
                     (y, current_position[1])
@@ -106,8 +119,9 @@ while True:
             )
             break
     print("new position: ", current_position)
-    map[current_position[0]][current_position[1]] = "."
-    map[current_position[0]][current_position[1]] = current_direction
+    if old_visited_length == len(visited):
+        print("CYCLE :(")
+        break
 
-
+print_visited(visited, map)
 print(len(visited))
