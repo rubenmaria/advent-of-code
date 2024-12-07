@@ -13,115 +13,61 @@ def get_position(direction: str, map: list[list[str]]) -> tuple[int, int]:
                 return (row, column)
     assert False
 
+def is_cycle_with(map: list[list[str]], obstacle: tuple[int,int]) -> bool:
+    if map[obstacle[0]][obstacle[1]] == "#":
+        return False
 
-def print_visited(v: set[tuple[int, int]], map: list[list[str]]) -> None:
-    for row in range(len(map)):
-        for column in range(len(map[0])):
-            if (row, column) in v and map[row][column] != "#":
-                print("X", end="")
-            else:
-                print(map[row][column], end="")
-        print("\n")
+    DIRECTIONS_STRING = [">", "v", "<", "^"]
+    DIRECTIONS = [(0,1), (1,0), (0,-1), (-1,0)]
+    visited = set()
+    obstacle_direction_visited = set()
+    current_direction_index = DIRECTIONS_STRING.index(
+        get_direction(DIRECTIONS_STRING, map)
+    )
+    current_position = get_position(DIRECTIONS_STRING[current_direction_index], map)
 
+    while True:
+        visited.add(current_position)
+        current_direction = DIRECTIONS[current_direction_index]
+        new_position = (
+            current_position[0] + current_direction[0],
+            current_position[1] + current_direction[1]
+        )
+        if not is_in_bounds(new_position, map):
+            return False
+        if map[new_position[0]][new_position[1]] == "#" or new_position == obstacle:
+            if (new_position,current_direction_index) in obstacle_direction_visited:
+                return True
+            obstacle_direction_visited.add((new_position, current_direction_index))
+            current_direction_index = (current_direction_index  +  1) % len(DIRECTIONS)
+        else:
+            current_position = new_position
 
-DIRECTIONS = [">", "<", "^", "v"]
+def is_in_bounds(x: tuple[int,int], m: list[list[str]]) -> bool:
+    return 0 <= x[0] < len(m) and 0 <= x[1] < len(m[0])
+
+DIRECTIONS_STRING = [">", "v", "<", "^"]
+DIRECTIONS = [(0,1), (1,0), (0,-1), (-1,0)]
 map = list(map(list, open("six.input").read().splitlines()))
 visited = set()
-current_direction = get_direction(DIRECTIONS, map)
-current_position = get_position(current_direction, map)
-
+current_direction_index = DIRECTIONS_STRING.index(
+    get_direction(DIRECTIONS_STRING, map)
+)
+current_position = get_position(DIRECTIONS_STRING[current_direction_index], map)
 while True:
-    old_visited_length = len(visited)
-    if current_direction == ">":
-        right_of_guard = map[current_position[0]][current_position[1] + 1:]
-        print("right of guard: ", right_of_guard)
-        if "#" in right_of_guard:
-            index_object = current_position[1] + right_of_guard.index("#") + 1
-            visited |= set(
-                [
-                    (current_position[0], x)
-                    for x in range(current_position[1], index_object)
-                ]
-            )
-            current_direction = "v"
-            current_position = (current_position[0], index_object - 1)
-        else:
-            visited |= set(
-                    [
-                        (current_position[0], x)
-                        for x in range(current_position[1], len(map[0]))
-                    ]
-            )
-            break
-    elif current_direction == "<":
-        left_of_guard = map[current_position[0]][:current_position[1]]
-        left_of_guard = left_of_guard[::-1]
-        print("left of guard: ", left_of_guard)
-        if "#" in left_of_guard:
-            index_object = len(left_of_guard) - 1 - left_of_guard.index("#")
-            visited |= set(
-                [
-                    (current_position[0], x)
-                    for x in range(index_object + 1, current_position[1] + 1)
-                ]
-            )
-            current_position = (current_position[0], index_object + 1)
-            current_direction = "^"
-        else:
-            visited |= set(
-                    [
-                        (current_position[0], x)
-                        for x in range(0, current_position[1] + 1)
-                    ]
-            )
-            break
-    elif current_direction == "^":
-        up_of_guard = [x[current_position[1]] for x in map[:current_position[0]]]
-        up_of_guard = up_of_guard[::-1]
-        print("up of guard: ", up_of_guard)
-        if "#" in up_of_guard:
-            index_object = len(up_of_guard) - 1 - up_of_guard.index("#")
-            visited |= set(
-                [
-                    (y, current_position[1])
-                    for y in range(index_object + 1, current_position[0] + 1)
-                ]
-            )
-            current_direction = ">"
-            current_position = (index_object + 1, current_position[1])
-        else:
-            visited |= set(
-                    [
-                        (y, current_position[1])
-                        for y in range(0, current_position[1] + 1)
-                    ]
-            )
-            break
-    elif current_direction == "v":
-        down_of_guard = [x[current_position[1]] for x in map[current_position[0]+1:]]
-        print("down of guard: ", down_of_guard)
-        if "#" in down_of_guard:
-            index_object = current_position[0] + 1 + down_of_guard.index("#")
-            visited |= set(
-                [
-                    (y, current_position[1])
-                    for y in range(current_position[0], index_object)
-                ]
-            )
-            current_direction = "<"
-            current_position = (index_object - 1, current_position[1])
-        else:
-            visited |= set(
-                    [
-                        (y, current_position[1])
-                        for y in range(current_position[1], len(map))
-                    ]
-            )
-            break
-    print("new position: ", current_position)
-    if old_visited_length == len(visited):
-        print("CYCLE :(")
+    visited.add(current_position)
+    current_direction = DIRECTIONS[current_direction_index]
+    new_position = (
+        current_position[0] + current_direction[0],
+        current_position[1] + current_direction[1]
+    )
+    if not is_in_bounds(new_position, map):
         break
-
-print_visited(visited, map)
+    if map[new_position[0]][new_position[1]] == "#":
+        current_direction_index = (current_direction_index  +  1) % len(DIRECTIONS)
+    else:
+        current_position = new_position
 print(len(visited))
+
+obstacles = [(y,x) for y in range(len(map)) for x in range(len(map[0]))]
+print(len(list(filter(lambda x: is_cycle_with(map, x), obstacles))))
