@@ -1,23 +1,51 @@
-memory_line = list(map(int, open("dummy-nine.input", "r").read().splitlines()[0]))
-print(memory_line)
+import copy
+import math
 
+
+memory_line = list(map(int, open("nine.input", "r").read().splitlines()[0]))
 check_sum = 0
 memory_position = 0
+end_memory_line = copy.deepcopy(memory_line)[::-1]
+end_index = 0
 file_id_visited = set()
 for i in range(len(memory_line)):
     if i % 2 == 0:
-        file_id = i / 2
+        file_id = int(i / 2)
+        space = memory_line[i]
+
         if file_id in file_id_visited:
+            space = end_memory_line[end_index]
+            new_add = sum([
+                file_id * pos 
+                for pos in range(memory_position, memory_position + space)
+            ])
+            print(f"last: file_id: {file_id}, space: {space}, sum_added: {new_add}")
+            check_sum += new_add
             break
-        check_sum += sum([
+
+        new_add = sum([
             file_id * pos 
-            for pos in range(memory_position, memory_position + memory_line[i])
+            for pos in range(memory_position, memory_position + space)
         ])
-        memory_position += memory_line[i]
+        print(f"file_id: {file_id}, space: {space}, sum_added: {new_add}")
+        check_sum += new_add
+        memory_position += space
         file_id_visited.add(file_id)
     else:
-        pass
+        free_space = memory_line[i]
+        for pos in range(memory_position, memory_position + free_space):
+            file_id = int((len(memory_line) - 1 - end_index) / 2)
+            file_id_visited.add(file_id)
+            check_sum += file_id * pos
+            print(f"file_id: {file_id}, space: {free_space}, file_added: {file_id*pos}, file_left:{end_memory_line[end_index]}")
+            end_memory_line[end_index] -= 1
+            if end_memory_line[end_index] == 0:
+                end_index += 2
+        memory_position += free_space
 
+#print(memory_line)
+print(len(memory_line))
+print(check_sum)
 
 
 
@@ -26,7 +54,7 @@ for i in range(len(memory_line)):
 """
 disk = []; [
     disk := disk + ([str(int(i/2)) * int(d)] if i % 2 == 0 else ["." * int(d)])
-    for i,d in enumerate(memory_raw_line)
+    for i,d in enumerate(memory_line)
 ]
 disk = list("".join(disk))
 for i in range(len(disk)):
