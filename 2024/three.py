@@ -2,6 +2,7 @@ import re
 import itertools
 import functools
 
+
 def tuple_to_values(t: tuple[str, str, str, str]) -> int:
     if t[0] != "":
         return int(t[0]) * int(t[1])
@@ -9,7 +10,8 @@ def tuple_to_values(t: tuple[str, str, str, str]) -> int:
         return -1
     return -2
 
-def do_iteration(acc: tuple[int, int], x: int) -> tuple[int,int]:
+
+def do_iteration(acc: tuple[int, int], x: int) -> tuple[int, int]:
     (sum, flag) = acc
     if x >= 0 and flag == -1:
         return (sum + x, flag)
@@ -17,10 +19,11 @@ def do_iteration(acc: tuple[int, int], x: int) -> tuple[int,int]:
         return (sum, flag)
     return (sum, x)
 
+
 memory = open("three.input", "r").read()
 numbers = re.findall(r"mul\((\d{1,3}),(\d{1,3})\)", memory)
-mulitplied = list(map(lambda x: int(x[0]) * int(x[1]),numbers))
-sum = functools.reduce(lambda x,y: x + y, mulitplied, 0)
+mulitplied = list(map(lambda x: int(x[0]) * int(x[1]), numbers))
+sum = functools.reduce(lambda x, y: x + y, mulitplied, 0)
 print(sum)
 
 numbers_do = re.findall(r"mul\((\d{1,3}),(\d{1,3})\)|(do)\(\)|(don't)\(\)", memory)

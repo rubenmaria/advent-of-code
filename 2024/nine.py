@@ -1,22 +1,24 @@
-def calculate_check_sum(memory: list[tuple[int,int]]) -> int:
+def calculate_check_sum(memory: list[tuple[int, int]]) -> int:
     check_sum = 0
     memory_index = 0
     for file in memory:
         (file_id, blocks_used) = file
-        check_sum += sum([
-            pos * file_id 
-            for pos in range(memory_index, memory_index + blocks_used)
-            if file_id != -1
-        ])
+        check_sum += sum(
+            [
+                pos * file_id
+                for pos in range(memory_index, memory_index + blocks_used)
+                if file_id != -1
+            ]
+        )
         memory_index += blocks_used
     return check_sum
 
 
 memory_line = list(map(int, open("nine.input", "r").read().splitlines()[0]))
 
-files = [(int(i/2), v) for i,v in enumerate(memory_line) if i % 2 == 0]
-free_spaces = [v for i,v in enumerate(memory_line) if i % 2 == 1]
-deframented_memory: list[tuple[int,int]] = []
+files = [(int(i / 2), v) for i, v in enumerate(memory_line) if i % 2 == 0]
+free_spaces = [v for i, v in enumerate(memory_line) if i % 2 == 1]
+deframented_memory: list[tuple[int, int]] = []
 for i in range(len(memory_line)):
     if len(files) == 0:
         break
@@ -35,10 +37,10 @@ for i in range(len(memory_line)):
                 break
 print(calculate_check_sum(deframented_memory))
 
-files = [(int(i/2), v) for i,v in enumerate(memory_line) if i % 2 == 0]
-free_spaces = [v for i,v in enumerate(memory_line) if i % 2 == 1]
+files = [(int(i / 2), v) for i, v in enumerate(memory_line) if i % 2 == 0]
+free_spaces = [v for i, v in enumerate(memory_line) if i % 2 == 1]
 files_and_spaces = [
-    (-1,free_spaces[i//2]) if i % 2 == 1 else files[i//2] 
+    (-1, free_spaces[i // 2]) if i % 2 == 1 else files[i // 2]
     for i in range(len(memory_line))
 ]
 for file in files[::-1]:
@@ -49,7 +51,10 @@ for file in files[::-1]:
         space = free_space[1]
         if space == file[1]:
             file_index = files_and_spaces.index(file)
-            files_and_spaces[file_index], files_and_spaces[space_index] = files_and_spaces[space_index], files_and_spaces[file_index]
+            files_and_spaces[file_index], files_and_spaces[space_index] = (
+                files_and_spaces[space_index],
+                files_and_spaces[file_index],
+            )
             break
         if space > file[1]:
             space -= file[1]
@@ -60,7 +65,7 @@ for file in files[::-1]:
             files_and_spaces.pop(file_index)
             files_and_spaces.insert(file_index, new_free_space)
             files_and_spaces.insert(space_index, file)
-            files_and_spaces.insert(space_index+1, left_free_space)
+            files_and_spaces.insert(space_index + 1, left_free_space)
             break
 
 print(calculate_check_sum(files_and_spaces))
