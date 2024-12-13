@@ -45,15 +45,15 @@ def has_neighbor(
     return None
 
 
-plant_map = list(map(list, open("twelve.input", "r").read().splitlines()))
-region_and_perimiers: list[tuple[set[tuple[int, int]], list[tuple[int, int]]]] = list()
+plant_map = list(map(list, open("dummy-twelve-6.input", "r").read().splitlines()))
+region_and_perimiers: list[tuple[list[tuple[int, int]], list[tuple[int, int]]]] = list()
 visited = set()
 for row in range(len(plant_map)):
     for column in range(len(plant_map[0])):
         if (row, column) not in visited:
             new_region = get_region(plant_map, (row, column), set())
             region_and_perimiers.append(
-                (new_region, get_perimeter(plant_map, new_region))
+                (list(new_region), get_perimeter(plant_map, new_region))
             )
             visited |= new_region
 
@@ -94,3 +94,10 @@ for p, fences in region_and_perimiers:
 
 print(sum(map(lambda x: len(x[0]) * len(x[1]), region_and_perimiers)))
 print(sum(map(lambda x: len(x[0]) * len(x[1]), region_sides_and_perimeters)))
+(region, sides) = region_sides_and_perimeters[0]
+print(
+    plant_map[region[0][0]][region[0][1]],
+    len(sides),
+    sides
+    #region_sides_and_perimeters
+)
