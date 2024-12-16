@@ -45,7 +45,7 @@ def has_neighbor(
     return None
 
 
-plant_map = list(map(list, open("dummy-twelve-6.input", "r").read().splitlines()))
+plant_map = list(map(list, open("twelve.input", "r").read().splitlines()))
 region_and_perimiers: list[tuple[list[tuple[int, int]], list[tuple[int, int]]]] = list()
 visited = set()
 for row in range(len(plant_map)):
@@ -57,47 +57,29 @@ for row in range(len(plant_map)):
             )
             visited |= new_region
 
-region_sides_and_perimeters = []
-for p, fences in region_and_perimiers:
-    fences_left: list[tuple[int, int]] = copy.deepcopy(sorted(fences))
-    sides: list[tuple[int, int]] = []
-    while len(fences_left) > 0:
-        side = fences_left.pop(0)
-        if neighbor := has_neighbor(fences_left, side):
-            direction = (
-                abs(neighbor[0] - side[0]),
-                abs(neighbor[1] - side[1]),
-            )
-            neighbor_one = (
-                side[0] + direction[0],
-                side[1] + direction[1],
-            )
-            while neighbor_one in fences_left:
-                fences_left.remove(neighbor_one)
-                neighbor_one = (
-                    neighbor_one[0] + direction[0],
-                    neighbor_one[1] + direction[1],
+price = 0
+for region,_ in region_and_perimiers:
+    visited = set()
+    side_count = 0
+    for (row,column) in region:
+        for (dir_row,dir_column) in [(1,0), (-1,0), (0,1), (0, -1)]:
+            side_point = (row + dir_row, column + dir_column)
+            region_point = (row + dir_column, column + dir_row)
+            if side_point in region:
+                continue
+            while side_point not in region and region_point in region:
+                side_point = (
+                    side_point[0] + dir_column,
+                    side_point[1] + dir_row
                 )
-
-            neighbor_two = (
-                side[0] - direction[0],
-                side[1] - direction[1],
-            )
-            while neighbor_two in fences_left:
-                fences_left.remove(neighbor_two)
-                neighbor_two = (
-                    neighbor_two[0] - direction[0],
-                    neighbor_two[1] - direction[1],
+                region_point = (
+                    region_point[0] + dir_column,
+                    region_point[1] + dir_row
                 )
-        sides.append(side)
-    region_sides_and_perimeters.append((p, sides))
+            if (region_point, dir_row, dir_column) not in visited:
+                visited.add((region_point, dir_row, dir_column))
+                side_count += 1  
+    price += side_count * len(region)
 
+print(price)
 print(sum(map(lambda x: len(x[0]) * len(x[1]), region_and_perimiers)))
-print(sum(map(lambda x: len(x[0]) * len(x[1]), region_sides_and_perimeters)))
-(region, sides) = region_sides_and_perimeters[0]
-print(
-    plant_map[region[0][0]][region[0][1]],
-    len(sides),
-    sides
-    #region_sides_and_perimeters
-)
