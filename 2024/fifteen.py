@@ -68,33 +68,27 @@ def move_big_box(
     (left_part, right_part) = positions
     new_position_left = (left_part[0] + dir[0], left_part[1] + dir[1])
     new_position_right = (right_part[0] + dir[0], right_part[1] + dir[1])
-    new_symbol_left = map[new_position_left[0]][new_position_left[1]]
-    new_symbol_right = map[new_position_right[0]][new_position_right[1]]
     if dir in [(-1, 0), (1, 0)]:
         if map[new_position_left[0]][new_position_left[1]] in ["[", "]"]:
             move_big_box(map, get_big_box(map, new_position_left), dir)
         if map[new_position_right[0]][new_position_right[1]] in ["[", "]"]:
             move_big_box(map, get_big_box(map, new_position_right), dir)
-        if (map[new_position_right[0]][new_position_right[1]] == "." and
-                map[new_position_left[0]][new_position_left[1]] == "."):
-            map[new_position_left[0]][new_position_left[1]] = "["
-            map[new_position_right[0]][new_position_right[1]] = "]"
-            map[left_part[0]][left_part[1]] = "."
-            map[right_part[0]][right_part[1]] = "."
+        map[new_position_left[0]][new_position_left[1]] = "["
+        map[new_position_right[0]][new_position_right[1]] = "]"
+        map[left_part[0]][left_part[1]] = "."
+        map[right_part[0]][right_part[1]] = "."
     elif dir == (0, 1):
         if map[new_position_right[0]][new_position_right[1]] == "[":
             move_big_box(map, get_big_box(map, new_position_right), dir)
-        if map[new_position_right[0]][new_position_right[1]] == ".":
-            map[new_position_left[0]][new_position_left[1]] = "["
-            map[new_position_right[0]][new_position_right[1]] = "]"
-            map[left_part[0]][left_part[1]] = "."
+        map[new_position_left[0]][new_position_left[1]] = "["
+        map[new_position_right[0]][new_position_right[1]] = "]"
+        map[left_part[0]][left_part[1]] = "."
     else:
         if map[new_position_left[0]][new_position_left[1]] == "]":
             move_big_box(map, get_big_box(map, new_position_left), dir)
-        if map[new_position_left[0]][new_position_left[1]] == ".":
-            map[new_position_left[0]][new_position_left[1]] = "["
-            map[new_position_right[0]][new_position_right[1]] = "]"
-            map[right_part[0]][right_part[1]] = "."
+        map[new_position_left[0]][new_position_left[1]] = "["
+        map[new_position_right[0]][new_position_right[1]] = "]"
+        map[right_part[0]][right_part[1]] = "."
 
 
 def is_big_box_movable(
@@ -111,13 +105,13 @@ def is_big_box_movable(
         is_movable = True
         if (new_symbol_left, new_symbol_right) == (".", "."):
             return True
-        if "#" in [new_symbol_left, new_position_right]:
+        if "#" in [new_symbol_left, new_symbol_right]:
             return False
-        if map[new_position_left[0]][new_position_left[1]] in ["[", "]"]:
+        if new_symbol_left in ["[", "]"]:
             is_movable = is_movable and is_big_box_movable(
                 map, get_big_box(map, new_position_left), dir
             )
-        if map[new_position_right[0]][new_position_right[1]] in ["[", "]"]:
+        if new_symbol_right in ["[", "]"]:
             is_movable = is_movable and is_big_box_movable(
                 map, get_big_box(map, new_position_right), dir
             )
@@ -127,7 +121,7 @@ def is_big_box_movable(
             return True
         if new_symbol_right == "#":
             return False
-        if map[new_position_right[0]][new_position_right[1]] == "[":
+        if new_symbol_right == "[":
             return is_big_box_movable(
                 map,
                 get_big_box(map, new_position_right),
@@ -137,7 +131,7 @@ def is_big_box_movable(
         return True
     if new_symbol_left == "#":
         return False
-    if map[new_position_left[0]][new_position_left[1]] == "]":
+    if new_symbol_left == "]":
         return is_big_box_movable(
             map,
             get_big_box(map, new_position_left),
@@ -198,7 +192,7 @@ def construct_new_map(map: list[list[str]]) -> list[list[str]]:
 
 
 MOVE_TO_DIR = {"<": (0, -1), ">": (0, 1), "^": (-1, 0), "v": (1, 0)}
-map_move_raw = open("dummy-fifteen.input", "r").read().splitlines()
+map_move_raw = open("fifteen.input", "r").read().splitlines()
 map_robot = list(map(list, map_move_raw[:map_move_raw.index("")]))
 moves = list("".join(map_move_raw[map_move_raw.index("")+1:]))
 robot_position = get_position(map_robot)
@@ -211,7 +205,6 @@ for move_symbol in moves:
     dir = MOVE_TO_DIR[move_symbol]
     robot_position = move(map_robot, robot_position, dir)
     robot_position_bigger = move_bigger(bigger_map, robot_position_bigger, dir)
-
 
 draw_map(map_robot)
 draw_map(bigger_map)
