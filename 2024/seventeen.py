@@ -1,22 +1,45 @@
-import time
-
-opnames = {
-    0: 'adv  | A = A // 2**COM',
-    1: 'bxl  | B = B ^ LIT',
-    2: 'bst  | B = COM % 8',
-    3: 'jnz  | if A!=0: goto LIT',
-    4: 'bxc  | B = B^C',
-    5: 'out  | print( COM % 8 )',
-    6: 'bdv  | B = A//2**COM',
-    7: 'cdv  | C = A//2**COM'
-}
-
 def run_input_program(
     register_a: int,
     register_b: int,
     register_c: int
 ) -> list[int]:
-    return []
+    out: list[int] = []
+    while True:
+        register_b = register_a % 8
+        register_b = register_b ^ 7
+        register_c = register_a // (2**register_b)
+        register_a = register_a // 8
+        register_b = register_b ^ register_c
+        register_b = register_b ^ 7
+        out += [register_b % 8]
+        if register_a == 0:
+            break
+    return out
+
+
+def find_initial_a(out: list[int]) -> int:
+    index = 1
+    a = 0
+    while True:
+        for i in range(8):
+            a_inner = a*8 + i
+            print("a_inner", a_inner)
+            current_out = run_input_program(a_inner, 0, 0)
+            print(current_out)
+            print(current_out[-index])
+            if current_out[-index] == out[-index]:
+                print("hallo")
+                a = a * 8 + i
+                index += 1
+                break
+        else:
+            print("not found")
+
+        print(index)
+        if index > len(out):
+            break
+    return a
+
 
 def get_combo_operand(
     operand: int,
@@ -120,6 +143,7 @@ def simulate_program(
             break
     return out
 
+
 program_and_register_raw = open("seventeen.input").read().splitlines()
 program_raw = program_and_register_raw[4].split(":")[1]
 program: list[int] = eval("[" + program_raw + "]")
@@ -127,21 +151,10 @@ register_a: int = int(program_and_register_raw[0].split(":")[1])
 register_b: int = int(program_and_register_raw[1].split(":")[1])
 register_c: int = int(program_and_register_raw[2].split(":")[1])
 
-print(f"   | OP LIT COM | name | operation")
-print("-----------------------------------------------")
-for i in range(0,len(program),2):
-    op = program[i]
-    li = program[i+1]
-    co = li 
-    if co == 4:
-        co = 'A'
-    if co == 5:
-        co = 'B'
-    if co == 6:
-        co = 'C' 
-    print(f"{i:2d} | {op:2d}  {li:2d}   {co} | {opnames[op]}")
 
-
+print(find_initial_a([
+    2, 4, 1, 7, 7, 5, 0, 3, 4, 0, 1, 7, 5, 5, 3, 0
+]))
 
 
 
