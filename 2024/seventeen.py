@@ -18,28 +18,18 @@ def run_input_program(
 
 
 def find_initial_a(out: list[int]) -> int:
-    index = 1
-    a = 0
-    while True:
+    to_visit: list[tuple[int, int]] = [(len(out), 0)]
+    while len(to_visit) > 0:
+        (pos, a) = to_visit.pop(0)
         for i in range(8):
-            a_inner = a*8 + i
-            print("a_inner", a_inner)
-            current_out = run_input_program(a_inner, 0, 0)
-            print(current_out)
-            print(current_out[-index])
-            if current_out[-index] == out[-index]:
-                print("hallo")
-                a = a * 8 + i
-                index += 1
-                break
-        else:
-            print("not found")
-
-        print(index)
-        if index > len(out):
-            break
-    return a
-
+            new_a = a * 8 + i
+            current_out = run_input_program(new_a, 0, 0)
+            if current_out == out[pos-1:]:
+                print(current_out)
+                to_visit += [(pos - 1, new_a)]
+                if len(current_out) == len(out):
+                    return new_a
+    raise Exception()
 
 def get_combo_operand(
     operand: int,
@@ -150,7 +140,6 @@ program: list[int] = eval("[" + program_raw + "]")
 register_a: int = int(program_and_register_raw[0].split(":")[1])
 register_b: int = int(program_and_register_raw[1].split(":")[1])
 register_c: int = int(program_and_register_raw[2].split(":")[1])
-
 
 print(find_initial_a([
     2, 4, 1, 7, 7, 5, 0, 3, 4, 0, 1, 7, 5, 5, 3, 0
