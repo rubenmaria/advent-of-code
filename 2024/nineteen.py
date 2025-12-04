@@ -11,7 +11,7 @@ def get_all_substrings(string: str) -> list[str]:
 
 @functools.cache
 def exists_towel_sequence_naive(
-    towels: list[str],
+    towels: tuple,
     design: str
 ) -> bool:
     if design == "":
@@ -25,7 +25,22 @@ def exists_towel_sequence_naive(
     return False
 
 
-def get_diffrent_ways(towels: list[str], design: str) -> int:
+@functools.cache
+def towel_sequences_naive(
+    towels: tuple[str,...],
+    design: str
+) -> int:
+    if design == "":
+        return 1
+    
+    paths = 0
+    for towel in towels:
+        if design.startswith(towel):
+            paths += towel_sequences_naive(towels, design[len(towel):])
+
+    return paths
+
+def get_diffrent_ways(towels: tuple, design: str) -> int:
     towels_in_design = get_all_substrings(design)
     towels_needed = list(set(towels) & set(towels_in_design))
     towels_length: dict[int, set[str]] = DefaultDict(set)
@@ -54,7 +69,7 @@ def get_diffrent_ways(towels: list[str], design: str) -> int:
     return towels_count[design]
 
 
-def exists_towel_sequence(towels: list[str], design: str) -> bool:
+def exists_towel_sequence(towels: tuple, design: str) -> bool:
     towels_in_design = get_all_substrings(design)
     towels_needed = list(set(towels) & set(towels_in_design))
     towels_length: dict[int, set[str]] = DefaultDict(set)
@@ -77,7 +92,7 @@ def exists_towel_sequence(towels: list[str], design: str) -> bool:
     return design in towels_length[len(design)]
 
 
-def exist_towel_sequence_optimized(towels: list[str], design: str) -> bool:
+def exist_towel_sequence_optimized(towels: tuple, design: str) -> bool:
     is_constructable_length = [False for _ in range(len(design) + 1)]
     is_constructable_length[0] = True
 
@@ -90,25 +105,25 @@ def exist_towel_sequence_optimized(towels: list[str], design: str) -> bool:
     return is_constructable_length[len(design)]
 
 
-def towel_sequence_paths(towels: list[str], design: str) -> int:
-    constructable_length_count = [0 for _ in range(len(design) + 1)]
+def towel_sequence_paths(towels: tuple, design: str) -> int:
+    constructable_length_count = defaultdict(int)
     constructable_length_count[0] = 1
 
     for i in range(len(design) + 1):
         for j in range(i):
             if constructable_length_count[j] > 0 and design[j:i] in towels:
-                constructable_length_count[i] += 1
+                constructable_length_count[i] += constructable_length_count[j] * towel_sequence_paths(towels, design[j:i])
 
     return constructable_length_count[len(design)]
 
 
 towels_raw = open("nineteen.input").read().split("\n\n")
-patterns = list(map(lambda x: x.strip(), towels_raw[0].split(",")))
+patterns = tuple(map(lambda x: x.strip(), towels_raw[0].split(",")))
 designs = list(filter(lambda x: x != "", map(lambda x: x.strip(), towels_raw[1].split("\n"))))
 
 print(
-    len(list(filter(lambda x: exist_towel_sequence_optimized(patterns, x), designs)))
+    len(list(filter(lambda x: exists_towel_sequence_naive(patterns, x), designs)))
 )
 print(
-    sum(map(lambda x: get_diffrent_ways(patterns, x), designs))
+    sum(map(lambda x: towel_sequences_naive(patterns, x), designs))
 )
