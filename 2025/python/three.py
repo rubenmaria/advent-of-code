@@ -121,9 +121,7 @@ def part_two(battery_banks: list[str], joltage_amount: int):
                     joltage_amount,
                     i,
                 )
-
                 if value is None:
-                    joltage_value = current_max_joltage
                     break
 
                 joltage_values.append(value)
@@ -131,7 +129,6 @@ def part_two(battery_banks: list[str], joltage_amount: int):
             joltage_value = int(
                 "".join(list(map(str, map(lambda x: x[1], joltage_values))))
             )
-
             if joltage_value <= current_max_joltage:
                 break
 
@@ -139,6 +136,7 @@ def part_two(battery_banks: list[str], joltage_amount: int):
 
             for i in range(joltage_amount):
                 joltages_visited[i].add(joltage_values[i][0])
+
         max_sum_joltage += current_max_joltage
     print(f"solution1+2={max_sum_joltage}")
 

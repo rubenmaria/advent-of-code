@@ -1,8 +1,7 @@
-use std::collections::HashSet;
 use std::ops::RangeInclusive;
 
 fn main() {
-    let ranges = include_str!("../../../real.input")
+    let ranges = include_str!("real.input")
         .split(",")
         .map(|x| (x.split("-").nth(0).unwrap(), x.split("-").nth(1).unwrap()))
         .map(|(x, y)| (x.trim(), y.trim()))
@@ -44,8 +43,6 @@ fn part_two(ranges: &Vec<RangeInclusive<i64>>) {
     let mut invalid_id_sum = 0;
     let mut number_string;
     let mut number_length;
-    let mut duplicates: HashSet<String> = HashSet::new();
-    let mut test: Vec<String> = Vec::new();
     for range in ranges {
         for number in range.clone() {
             number_string = number.to_string();
@@ -54,14 +51,8 @@ fn part_two(ranges: &Vec<RangeInclusive<i64>>) {
                 if number_length % part_length != 0 {
                     continue;
                 }
-                duplicates.clear();
-                test.clear();
-                for chunk in number_string.as_bytes().chunks(part_length) {
-                    let s = std::str::from_utf8(chunk).unwrap();
-                    duplicates.insert(s.to_string());
-                    test.push(s.to_string());
-                }
-                if duplicates.len() == 1 {
+                if number_string[..part_length].repeat(number_length / part_length) == number_string
+                {
                     invalid_id_sum += number;
                     break;
                 }
