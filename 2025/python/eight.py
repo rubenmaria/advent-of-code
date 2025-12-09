@@ -11,20 +11,30 @@ print(boxes)
 
 
 def part_one(boxes: list[tuple[int, int, int]]):
-    visited = set()
-    for box in boxes:
-        for other in boxes:
-            if other == box:
-                continue
+    circuits: list[set[tuple[int, int, int]]] = []
+    for i in range(10):
+        min_box = box_with_min_distance_to(boxes, boxes[i])
+        print(f"for box={boxes[i]} is min_distace= {min_box}")
+
+        if not any(min_box in circuit for circuit in circuits):
+            circuits.append(set([min_box, boxes[i]]))
+            continue
+
+        for circuit in circuits:
+            if boxes[i] in circuit or min_box in circuit:
+                circuit.add(boxes[i])
+                circuit.add(min_box)
+
+    print(circuits)
 
 
-def min_distance(
+def box_with_min_distance_to(
     boxes: list[tuple[int, int, int]], v: tuple[int, int, int]
 ) -> tuple[int, int, int]:
-    x = deepcopy(boxes)
-    x.remove(v)
-    return (0, 0, 0)
+    return sorted(boxes, key=lambda x: distance(x, v))[1]
 
 
 def distance(u: tuple[int, int, int], v: tuple[int, int, int]) -> float:
     return sqrt((u[0] - v[0]) ** 2 + (u[1] - v[1]) ** 2 + (u[2] - v[2]) ** 2)
+
+part_one(boxes)
