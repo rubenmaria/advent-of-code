@@ -40,7 +40,7 @@ def parse_joltage(joltage: str) -> list[int]:
     return list(map(int, joltage.strip("{}").split(",")))
 
 
-manual = list(map(lambda x: x.split(" "), open("real.input").read().splitlines()))
+manual = list(map(lambda x: x.split(" "), open("test.input").read().splitlines()))
 lights = [parse_lights(x) for row in manual for x in row if x.startswith("[")]
 buttons = [parse_buttons(row) for row in manual]
 buttons_joltage = [parse_buttons_non_binary(row) for row in manual]
@@ -65,29 +65,83 @@ def part_one(lights: list[int], operations: list[list[int]]):
     print(f"solution1={sum(min_presses)}")
 
 
-def part_two(joltages: list[list[int]], operations: list[list[list[int]]]):
-    min_presses = []
-    for i, (joltage_pattern, operation_set) in enumerate(zip(joltages, operations)):
-        print(f"{i + 1}/{len(joltages)}")
-        min = 0
-        for i in range(max(joltage_pattern), sum(joltage_pattern)):
-            for comb in combinations_with_replacement(operation_set, i):
-                if is_correct_button_combination(comb, joltage_pattern):
-                    min = i
-                    break
-            if min > 0:
-                min_presses.append(min)
-                break
-    print(f"solution1={sum(min_presses)}")
+def part_two(joltages, buttons):
+    total = 0
+    for i, (t, b) in enumerate(zip(joltages, buttons), 1):
+        print(f"{i}/{len(joltages)}")
+        a = joltage_and_buttons_to_matrix(t, b)
+        a = transfrom_matrix_in_row_echolon_form(a)
+        print(a)
+        x = search_in_back_substitution(a)
+        print(x)
+
+    print("solution2 =", total)
 
 
-def is_correct_button_combination(buttons: tuple, joltage_pattern: list[int]) -> bool:
-    joltage = [0 for _ in range(len(joltage_pattern))]
-    for button in buttons:
-        for i in button:
-            joltage[i] += 1
+def joltage_and_buttons_to_matrix(
+    joltage: list[int], buttons: list[list[int]]
+) -> list[list[float]]:
+    matrix_row_size = len(joltage)
+    matrix_column_size = len(buttons) + 1
 
-    return joltage == joltage_pattern
+    matrix = [
+        [float(0) for _ in range(matrix_column_size)] for _ in range(matrix_row_size)
+    ]
+
+    for row in range(matrix_row_size):
+        for column in range(matrix_column_size):
+            if column >= len(buttons):
+                matrix[row][column] = joltage[row]
+            elif row in buttons[column]:
+                matrix[row][column] = float(1)
+
+    return matrix
+
+
+def transfrom_matrix_in_row_echolon_form(
+    matrix: list[list[float]],
+) -> list[list[float]]:
+    if len(matrix) == 0:
+        return matrix
+
+    pivot_row, pivot_column = 0, 0
+    matrix_row_size = len(matrix)
+    matrix_column_size = len(matrix[0])
+
+    while pivot_row < matrix_row_size and pivot_column < matrix_column_size:
+        max_row_index, max_column_value = max(
+            [
+                (i, abs(matrix[i][pivot_column]))
+                for i in range(pivot_row, matrix_row_size)
+            ],
+            key=lambda x: x[1],
+        )
+        if max_column_value == 0:
+            pivot_column += 1
+        else:
+            matrix[pivot_row], matrix[max_row_index] = (
+                matrix[max_row_index],
+                matrix[pivot_row],
+            )
+
+            for row in range(pivot_row + 1, matrix_row_size):
+                coefficient = (
+                    matrix[row][pivot_column] / matrix[pivot_row][pivot_column]
+                )
+                matrix[row][pivot_column] = 0
+
+                for column in range(pivot_column + 1, matrix_column_size):
+                    matrix[row][column] = (
+                        matrix[row][column] - matrix[pivot_row][column] * coefficient
+                    )
+
+            pivot_row, pivot_column = pivot_row + 1, pivot_column + 1
+    return matrix
+
+
+def search_in_back_substitution(matrix: list[list[float]]) -> list[int]:
+    for pivot_row_index, row in enumerate(reversed(matrix)):
+        print(pivot_row_index, row)
 
 
 part_one(lights, buttons)
